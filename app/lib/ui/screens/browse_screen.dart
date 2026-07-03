@@ -250,45 +250,99 @@ class _StockBadge extends StatelessWidget {
   }
 }
 
-class _TemplateList extends StatelessWidget {
+class _TemplateList extends StatefulWidget {
   final AppState appState;
   const _TemplateList({required this.appState});
 
   @override
+  State<_TemplateList> createState() => _TemplateListState();
+}
+
+class _TemplateListState extends State<_TemplateList> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (appState.templates.isEmpty) {
-      return const Center(child: Text('No templates available'));
-    }
-    return ListView.builder(
-      itemCount: appState.templates.length,
-      itemBuilder: (context, index) {
-        final template = appState.templates[index];
-        final selected = appState.config.selectedTemplateId == template.id;
-        return ListTile(
-          key: Key('templateTile_${template.id}'),
-          leading: Icon(selected ? Icons.check_circle : Icons.dashboard_customize,
-              color: selected ? Colors.green : null),
-          title: Text(template.name),
-          subtitle: Text(template.imageName),
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: (template.isPublic ? Colors.blue : Colors.purple).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+    final appState = widget.appState;
+    final query = _query.trim().toLowerCase();
+    final templates = query.isEmpty
+        ? appState.templates
+        : appState.templates
+            .where((t) =>
+                t.name.toLowerCase().contains(query) || t.imageName.toLowerCase().contains(query))
+            .toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: TextField(
+            key: const Key('templateSearchField'),
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search templates by name or image',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                    ),
+              isDense: true,
+              border: const OutlineInputBorder(),
             ),
-            child: Text(
-              template.isPublic ? 'PUBLIC' : 'MY TEMPLATE',
-              style: TextStyle(
-                color: template.isPublic ? Colors.blue : Colors.purple,
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-              ),
-            ),
+            onChanged: (value) => setState(() => _query = value),
           ),
-          selected: selected,
-          onTap: () => appState.selectTemplate(template.id),
-        );
-      },
+        ),
+        Expanded(
+          child: appState.templates.isEmpty
+              ? const Center(child: Text('No templates available'))
+              : templates.isEmpty
+                  ? const Center(child: Text('No templates match your search'))
+                  : ListView.builder(
+                      itemCount: templates.length,
+                      itemBuilder: (context, index) {
+                        final template = templates[index];
+                        final selected = appState.config.selectedTemplateId == template.id;
+                        return ListTile(
+                          key: Key('templateTile_${template.id}'),
+                          leading: Icon(selected ? Icons.check_circle : Icons.dashboard_customize,
+                              color: selected ? Colors.green : null),
+                          title: Text(template.name),
+                          subtitle: Text(template.imageName),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: (template.isPublic ? Colors.blue : Colors.purple)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              template.isPublic ? 'PUBLIC' : 'MY TEMPLATE',
+                              style: TextStyle(
+                                color: template.isPublic ? Colors.blue : Colors.purple,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          selected: selected,
+                          onTap: () => appState.selectTemplate(template.id),
+                        );
+                      },
+                    ),
+        ),
+      ],
     );
   }
 }

@@ -103,4 +103,39 @@ void main() {
     expect(find.text('PUBLIC'), findsWidgets);
     expect(find.text('MY TEMPLATE'), findsOneWidget);
   });
+
+  testWidgets('searching templates filters by name and image, and clear resets it',
+      (tester) async {
+    await pumpBrowseScreen(tester);
+
+    await tester.tap(find.byKey(const Key('templateTab')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('templateTile_tmpl-pytorch')), findsOneWidget);
+    expect(find.byKey(const Key('templateTile_tmpl-tensorflow')), findsOneWidget);
+    expect(find.byKey(const Key('templateTile_tmpl-my-custom')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('templateSearchField')), 'pytorch');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('templateTile_tmpl-pytorch')), findsOneWidget);
+    expect(find.byKey(const Key('templateTile_tmpl-tensorflow')), findsNothing);
+    expect(find.byKey(const Key('templateTile_tmpl-my-custom')), findsNothing);
+
+    // Also matches on image name, not just the display name.
+    await tester.enterText(find.byKey(const Key('templateSearchField')), 'myregistry');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('templateTile_tmpl-my-custom')), findsOneWidget);
+    expect(find.byKey(const Key('templateTile_tmpl-pytorch')), findsNothing);
+
+    await tester.enterText(find.byKey(const Key('templateSearchField')), 'nonexistent-xyz');
+    await tester.pumpAndSettle();
+    expect(find.text('No templates match your search'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.clear));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('templateTile_tmpl-pytorch')), findsOneWidget);
+    expect(find.byKey(const Key('templateTile_tmpl-tensorflow')), findsOneWidget);
+    expect(find.byKey(const Key('templateTile_tmpl-my-custom')), findsOneWidget);
+  });
 }

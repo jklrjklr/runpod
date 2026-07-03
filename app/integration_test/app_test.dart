@@ -70,7 +70,10 @@ void main() {
     // selection made in the previous screen.
     await tester.tap(find.byKey(const Key('gpuCountStepper_increment')));
     await tester.pumpAndSettle();
-    expect((tester.widget(find.byKey(const Key('gpuCountStepper'))) as Text).data, '2');
+    expect(
+      tester.widget<TextField>(find.byKey(const Key('gpuCountStepper'))).controller!.text,
+      '2',
+    );
 
     // 4. Deploy.
     await tester.tap(find.byKey(const Key('deployButton')));
