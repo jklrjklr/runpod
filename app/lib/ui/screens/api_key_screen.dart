@@ -36,7 +36,10 @@ class _ApiKeyScreenState extends State<ApiKeyScreen> {
     if (!mounted) return;
     setState(() => _validating = false);
     if (!valid) {
-      setState(() => _error = 'Invalid API key. Please check and try again.');
+      final networkError = appState.lastAuthError;
+      setState(() => _error = networkError != null
+          ? 'Could not reach RunPod: $networkError'
+          : 'Invalid API key. Please check and try again.');
     }
   }
 

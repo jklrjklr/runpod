@@ -43,14 +43,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set when the last submitApiKey() call failed due to a network/transport
+  /// error rather than RunPod rejecting the key, so the UI can show the real
+  /// cause instead of a misleading "invalid key" message.
+  String? lastAuthError;
+
   Future<bool> submitApiKey(String key) async {
-    final valid = await client.validateApiKey(key);
-    if (valid) {
-      apiKey = key;
-      await store.setApiKey(key);
-      notifyListeners();
+    lastAuthError = null;
+    try {
+      final valid = await client.validateApiKey(key);
+      if (valid) {
+        apiKey = key;
+        await store.setApiKey(key);
+        notifyListeners();
+      }
+      return valid;
+    } catch (e) {
+      lastAuthError = e.toString();
+      return false;
     }
-    return valid;
   }
 
   Future<void> signOut() async {

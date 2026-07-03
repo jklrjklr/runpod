@@ -75,12 +75,12 @@ class HttpRunPodClient implements RunPodClient {
 
   @override
   Future<bool> validateApiKey(String apiKey) async {
-    try {
-      final data = await _graphql(apiKey, 'query { myself { id } }', {});
-      return data['myself'] != null && data['myself']['id'] != null;
-    } catch (_) {
-      return false;
-    }
+    // Deliberately doesn't swallow exceptions here: a network/permission
+    // failure must surface distinctly from RunPod actually rejecting the
+    // key, otherwise callers report "invalid key" for what's really a
+    // connectivity problem.
+    final data = await _graphql(apiKey, 'query { myself { id } }', {});
+    return data['myself'] != null && data['myself']['id'] != null;
   }
 
   @override
