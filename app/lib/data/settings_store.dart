@@ -9,6 +9,8 @@ abstract class SettingsStore {
   Future<void> setApiKey(String? apiKey);
   Future<DeployConfig> loadConfig();
   Future<void> saveConfig(DeployConfig config);
+  Future<String?> getSshPrivateKeyPem();
+  Future<void> setSshPrivateKeyPem(String pem);
 }
 
 /// Persists settings via SharedPreferences. The API key is stored alongside
@@ -19,6 +21,7 @@ abstract class SettingsStore {
 class SharedPreferencesSettingsStore implements SettingsStore {
   static const _apiKeyPref = 'runpod_api_key';
   static const _configPref = 'runpod_deploy_config';
+  static const _sshKeyPref = 'runpod_ssh_private_key_pem';
 
   @override
   Future<String?> getApiKey() async {
@@ -48,5 +51,17 @@ class SharedPreferencesSettingsStore implements SettingsStore {
   Future<void> saveConfig(DeployConfig config) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_configPref, jsonEncode(config.toJson()));
+  }
+
+  @override
+  Future<String?> getSshPrivateKeyPem() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_sshKeyPref);
+  }
+
+  @override
+  Future<void> setSshPrivateKeyPem(String pem) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_sshKeyPref, pem);
   }
 }

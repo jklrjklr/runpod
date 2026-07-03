@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../data/runpod_client.dart';
 import '../data/settings_store.dart';
 import '../domain/deploy_retry_handler.dart';
+import '../domain/ssh_key_manager.dart';
 import '../models/deploy_config.dart';
 import '../models/gpu_pricing.dart';
 import '../models/gpu_type.dart';
@@ -13,8 +14,10 @@ class AppState extends ChangeNotifier {
   final RunPodClient client;
   final SettingsStore store;
   final Duration Function(int attempt)? retryBackoff;
+  final SshKeyManager sshKeyManager;
 
-  AppState({required this.client, required this.store, this.retryBackoff});
+  AppState({required this.client, required this.store, this.retryBackoff})
+      : sshKeyManager = SshKeyManager(store);
 
   bool initialized = false;
   String? apiKey;
@@ -107,6 +110,8 @@ class AppState extends ChangeNotifier {
     currentPod = null;
     notifyListeners();
 
+    final sshIdentity = await sshKeyManager.ensureIdentity();
+
     final handler = DeployRetryHandler(client: client, backoff: retryBackoff);
     final result = await handler.deploy(
       apiKey!,
@@ -116,6 +121,7 @@ class AppState extends ChangeNotifier {
         deployMaxRetry = max;
         notifyListeners();
       },
+      env: {'PUBLIC_KEY': sshIdentity.publicKeyOpenSsh},
     );
 
     deploying = false;

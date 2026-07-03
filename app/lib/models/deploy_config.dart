@@ -46,7 +46,7 @@ class DeployConfig {
     this.minMemoryInGb = 8,
     this.volumeInGb = 20,
     this.containerDiskInGb = 20,
-    this.ports = '8888/http',
+    this.ports = '8888/http,22/tcp',
     this.volumeMountPath = '/workspace',
     this.maxRetryCount = 3,
   });
@@ -103,7 +103,7 @@ class DeployConfig {
       minMemoryInGb: (json['minMemoryInGb'] as num?)?.toInt() ?? 8,
       volumeInGb: (json['volumeInGb'] as num?)?.toInt() ?? 20,
       containerDiskInGb: (json['containerDiskInGb'] as num?)?.toInt() ?? 20,
-      ports: json['ports'] as String? ?? '8888/http',
+      ports: json['ports'] as String? ?? '8888/http,22/tcp',
       volumeMountPath: json['volumeMountPath'] as String? ?? '/workspace',
       maxRetryCount: (json['maxRetryCount'] as num?)?.toInt() ?? 3,
     );

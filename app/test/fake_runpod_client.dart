@@ -70,9 +70,12 @@ class FakeRunPodClient implements RunPodClient {
     ];
   }
 
+  Map<String, String>? lastDeployEnv;
+
   @override
-  Future<Pod?> deployPod(String apiKey, DeployConfig config) async {
+  Future<Pod?> deployPod(String apiKey, DeployConfig config, {Map<String, String>? env}) async {
     deployCallCount += 1;
+    lastDeployEnv = env;
     if (deployCallCount <= deployNullResponsesBeforeSuccess) {
       return null;
     }
@@ -85,6 +88,7 @@ class FakeRunPodClient implements RunPodClient {
         uptimeInSeconds: 5,
         ports: [
           PodPort(ip: '1.2.3.4', publicPort: 8888, privatePort: 8888, type: 'http'),
+          PodPort(ip: '1.2.3.4', publicPort: 22022, privatePort: 22, type: 'tcp'),
         ],
         gpus: [
           PodGpuUtil(id: 'gpu-0', gpuUtilPercent: 10, memoryUtilPercent: 20),
@@ -102,6 +106,7 @@ class FakeRunPodClient implements RunPodClient {
         uptimeInSeconds: 42,
         ports: [
           PodPort(ip: '1.2.3.4', publicPort: 8888, privatePort: 8888, type: 'http'),
+          PodPort(ip: '1.2.3.4', publicPort: 22022, privatePort: 22, type: 'tcp'),
         ],
         gpus: [
           PodGpuUtil(id: 'gpu-0', gpuUtilPercent: 15, memoryUtilPercent: 25),

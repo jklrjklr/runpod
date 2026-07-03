@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../state/app_state.dart';
+import 'ssh_terminal_screen.dart';
 
 class PodConnectionScreen extends StatelessWidget {
   const PodConnectionScreen({super.key});
@@ -81,6 +82,26 @@ class PodConnectionScreen extends StatelessWidget {
             )
           else
             const Text('Waiting for an HTTP port to become available...'),
+          const SizedBox(height: 12),
+          if (runtime?.sshPort != null)
+            FilledButton.icon(
+              key: const Key('sshTerminalButton'),
+              onPressed: () {
+                final sshPort = runtime!.sshPort!;
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SshTerminalScreen(
+                      host: sshPort.ip,
+                      port: sshPort.publicPort,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.terminal),
+              label: const Text('SSH Terminal'),
+            )
+          else
+            const Text('Waiting for an SSH port to become available...'),
           const SizedBox(height: 24),
           OutlinedButton.icon(
             key: const Key('stopPodButton'),

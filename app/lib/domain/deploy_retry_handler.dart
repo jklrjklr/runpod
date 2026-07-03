@@ -35,12 +35,13 @@ class DeployRetryHandler {
     String apiKey,
     DeployConfig config, {
     AttemptCallback? onAttempt,
+    Map<String, String>? env,
   }) async {
     var attempt = 0;
     while (true) {
       onAttempt?.call(attempt, config.maxRetryCount);
       try {
-        final pod = await client.deployPod(apiKey, config);
+        final pod = await client.deployPod(apiKey, config, env: env);
         if (pod != null) {
           return DeployResult.success(pod, attempt + 1);
         }

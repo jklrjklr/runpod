@@ -29,7 +29,11 @@ abstract class RunPodClient {
 
   /// Returns null when RunPod accepts the request but has no id to give back
   /// (e.g. no stock available) -- a retryable failure, not an exception.
-  Future<Pod?> deployPod(String apiKey, DeployConfig config);
+  ///
+  /// [env] is passed through as container environment variables; RunPod's
+  /// standard image entrypoints write a PUBLIC_KEY entry into
+  /// ~/.ssh/authorized_keys on container start.
+  Future<Pod?> deployPod(String apiKey, DeployConfig config, {Map<String, String>? env});
   Future<Pod> getPodStatus(String apiKey, String podId);
   Future<void> stopPod(String apiKey, String podId);
   Future<void> resumePod(String apiKey, String podId, int gpuCount);
@@ -142,7 +146,7 @@ class HttpRunPodClient implements RunPodClient {
   }
 
   @override
-  Future<Pod?> deployPod(String apiKey, DeployConfig config) async {
+  Future<Pod?> deployPod(String apiKey, DeployConfig config, {Map<String, String>? env}) async {
     const query = r'''
       mutation DeployPod($input: PodFindAndDeployOnDemandInput!) {
         podFindAndDeployOnDemand(input: $input) {
@@ -164,6 +168,8 @@ class HttpRunPodClient implements RunPodClient {
       'templateId': config.selectedTemplateId,
       'ports': config.ports,
       'volumeMountPath': config.volumeMountPath,
+      if (env != null && env.isNotEmpty)
+        'env': env.entries.map((e) => {'key': e.key, 'value': e.value}).toList(),
     };
     final data = await _graphql(apiKey, query, {'input': input});
     final result = data['podFindAndDeployOnDemand'] as Map<String, dynamic>?;

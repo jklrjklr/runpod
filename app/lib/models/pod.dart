@@ -60,6 +60,14 @@ class PodRuntime {
     return null;
   }
 
+  /// The TCP port mapped to the container's SSH daemon (private port 22).
+  PodPort? get sshPort {
+    for (final p in ports) {
+      if (p.privatePort == 22) return p;
+    }
+    return null;
+  }
+
   factory PodRuntime.fromJson(Map<String, dynamic> json) {
     return PodRuntime(
       uptimeInSeconds: (json['uptimeInSeconds'] as num?)?.toInt() ?? 0,
