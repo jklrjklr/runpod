@@ -13,13 +13,20 @@ class FakeRunPodClient implements RunPodClient {
   int deployNullResponsesBeforeSuccess;
   bool failValidation = false;
   int deployCallCount = 0;
+  Map<String, String>? lastDeployEnv;
+  String? terminatedPodId;
 
-  String? stoppedPodId;
+  final Map<String, Pod> _pods = {};
 
   FakeRunPodClient({
     this.validApiKey = 'test-api-key',
     this.deployNullResponsesBeforeSuccess = 0,
-  });
+    List<Pod> initialPods = const [],
+  }) {
+    for (final pod in initialPods) {
+      _pods[pod.id] = pod;
+    }
+  }
 
   @override
   Future<bool> validateApiKey(String apiKey) async {
@@ -111,8 +118,6 @@ class FakeRunPodClient implements RunPodClient {
     ];
   }
 
-  Map<String, String>? lastDeployEnv;
-
   @override
   Future<Pod?> deployPod(String apiKey, DeployConfig config, {Map<String, String>? env}) async {
     deployCallCount += 1;
@@ -120,11 +125,14 @@ class FakeRunPodClient implements RunPodClient {
     if (deployCallCount <= deployNullResponsesBeforeSuccess) {
       return null;
     }
-    return Pod(
+    final pod = Pod(
       id: 'pod-123',
       imageName: config.selectedTemplateId,
       machineId: 'machine-1',
       desiredStatus: 'RUNNING',
+      gpuCount: config.gpuCount,
+      costPerHr: 0.5,
+      gpuDisplayName: config.selectedGpuTypeId,
       runtime: const PodRuntime(
         uptimeInSeconds: 5,
         ports: [
@@ -136,13 +144,17 @@ class FakeRunPodClient implements RunPodClient {
         ],
       ),
     );
+    _pods[pod.id] = pod;
+    return pod;
   }
 
   @override
   Future<Pod> getPodStatus(String apiKey, String podId) async {
+    final existing = _pods[podId];
+    if (existing != null) return existing;
     return Pod(
       id: podId,
-      desiredStatus: stoppedPodId == podId ? 'EXITED' : 'RUNNING',
+      desiredStatus: 'RUNNING',
       runtime: const PodRuntime(
         uptimeInSeconds: 42,
         ports: [
@@ -157,19 +169,37 @@ class FakeRunPodClient implements RunPodClient {
   }
 
   @override
+  Future<List<Pod>> listPods(String apiKey) async => _pods.values.toList();
+
+  @override
   Future<void> stopPod(String apiKey, String podId) async {
-    stoppedPodId = podId;
+    final pod = _pods[podId] ?? await getPodStatus(apiKey, podId);
+    _pods[podId] = _withStatus(pod, 'EXITED');
   }
 
   @override
   Future<void> resumePod(String apiKey, String podId, int gpuCount) async {
-    stoppedPodId = null;
+    final pod = _pods[podId] ?? await getPodStatus(apiKey, podId);
+    _pods[podId] = _withStatus(pod, 'RUNNING');
   }
-
-  String? terminatedPodId;
 
   @override
   Future<void> terminatePod(String apiKey, String podId) async {
     terminatedPodId = podId;
+    _pods.remove(podId);
   }
+
+  Pod _withStatus(Pod pod, String status) => Pod(
+        id: pod.id,
+        name: pod.name,
+        imageName: pod.imageName,
+        machineId: pod.machineId,
+        desiredStatus: status,
+        runtime: pod.runtime,
+        costPerHr: pod.costPerHr,
+        gpuCount: pod.gpuCount,
+        vcpuCount: pod.vcpuCount,
+        memoryInGb: pod.memoryInGb,
+        gpuDisplayName: pod.gpuDisplayName,
+      );
 }

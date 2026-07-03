@@ -51,7 +51,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // 2. Browse screen: select a GPU (Secure tab, shown by default) and a template.
-    expect(find.text('Browse'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Browse')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('gpuTile_secure_NVIDIA H100 80GB HBM3')), findsOneWidget);
     await tester.tap(find.byKey(const Key('gpuTile_secure_NVIDIA H100 80GB HBM3')));
     await tester.pumpAndSettle();
@@ -90,6 +93,25 @@ void main() {
     await tester.tap(find.byKey(const Key('stopPodButton')));
     await tester.pumpAndSettle();
     expect(find.text('Status: EXITED'), findsOneWidget);
+
+    // 6. Back to the home shell (pop PodConnectionScreen, then DeployPanelScreen),
+    // then the Pods tab shows the same pod and lets us resume it from there.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('navPods')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('podListTile_pod-123')), findsOneWidget);
+    expect(find.text('EXITED'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('podListTile_pod-123')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('resumePodButton')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('resumePodButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('Status: RUNNING'), findsOneWidget);
   });
 
   testWidgets('deploy retries past a null-id response before succeeding', (tester) async {

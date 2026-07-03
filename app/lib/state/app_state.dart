@@ -166,6 +166,7 @@ class AppState extends ChangeNotifier {
     deploying = false;
     if (result.isSuccess) {
       currentPod = result.pod;
+      _upsertPod(result.pod!);
     } else {
       deployError = result.error;
     }
@@ -174,27 +175,77 @@ class AppState extends ChangeNotifier {
 
   Future<void> refreshPodStatus() async {
     if (currentPod == null) return;
-    currentPod = await client.getPodStatus(apiKey!, currentPod!.id);
-    notifyListeners();
+    currentPod = await refreshPod(currentPod!.id);
   }
 
   Future<void> stopCurrentPod() async {
     if (currentPod == null) return;
-    await client.stopPod(apiKey!, currentPod!.id);
-    currentPod = await client.getPodStatus(apiKey!, currentPod!.id);
-    notifyListeners();
+    await stopPod(currentPod!.id);
   }
 
   Future<void> terminateCurrentPod() async {
     if (currentPod == null) return;
-    await client.terminatePod(apiKey!, currentPod!.id);
+    await terminatePod(currentPod!.id);
     currentPod = null;
-    notifyListeners();
   }
 
   void clearDeployedPod() {
     currentPod = null;
     deployError = null;
+    notifyListeners();
+  }
+
+  // --- Pods tab: manage every pod on the account, not just the one just deployed ---
+
+  bool loadingPods = false;
+  String? podsError;
+  List<Pod> pods = [];
+
+  Future<void> loadPods() async {
+    loadingPods = true;
+    podsError = null;
+    notifyListeners();
+    try {
+      pods = await client.listPods(apiKey!);
+    } catch (e) {
+      podsError = e.toString();
+    } finally {
+      loadingPods = false;
+      notifyListeners();
+    }
+  }
+
+  void _upsertPod(Pod pod) {
+    final index = pods.indexWhere((p) => p.id == pod.id);
+    if (index == -1) {
+      pods = [pod, ...pods];
+    } else {
+      pods = [...pods]..[index] = pod;
+    }
+  }
+
+  Future<Pod> refreshPod(String podId) async {
+    final pod = await client.getPodStatus(apiKey!, podId);
+    if (currentPod?.id == podId) currentPod = pod;
+    _upsertPod(pod);
+    notifyListeners();
+    return pod;
+  }
+
+  Future<void> stopPod(String podId) async {
+    await client.stopPod(apiKey!, podId);
+    await refreshPod(podId);
+  }
+
+  Future<void> resumePod(String podId, {int gpuCount = 1}) async {
+    await client.resumePod(apiKey!, podId, gpuCount);
+    await refreshPod(podId);
+  }
+
+  Future<void> terminatePod(String podId) async {
+    await client.terminatePod(apiKey!, podId);
+    pods = pods.where((p) => p.id != podId).toList();
+    if (currentPod?.id == podId) currentPod = null;
     notifyListeners();
   }
 }

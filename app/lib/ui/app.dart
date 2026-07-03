@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
 import 'screens/api_key_screen.dart';
-import 'screens/browse_screen.dart';
+import 'screens/home_shell.dart';
 
 class RunPodManagerApp extends StatefulWidget {
   const RunPodManagerApp({super.key});
@@ -36,7 +36,7 @@ class _RunPodManagerAppState extends State<RunPodManagerApp> {
           if (!appState.initialized) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
-          return appState.hasApiKey ? const BrowseScreen() : const ApiKeyScreen();
+          return appState.hasApiKey ? const HomeShell() : const ApiKeyScreen();
         },
       ),
     );

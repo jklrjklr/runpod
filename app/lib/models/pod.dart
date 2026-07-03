@@ -83,17 +83,29 @@ class PodRuntime {
 
 class Pod {
   final String id;
+  final String? name;
   final String? imageName;
   final String? machineId;
   final String desiredStatus;
   final PodRuntime? runtime;
+  final double? costPerHr;
+  final int? gpuCount;
+  final int? vcpuCount;
+  final int? memoryInGb;
+  final String? gpuDisplayName;
 
   const Pod({
     required this.id,
+    this.name,
     this.imageName,
     this.machineId,
     required this.desiredStatus,
     this.runtime,
+    this.costPerHr,
+    this.gpuCount,
+    this.vcpuCount,
+    this.memoryInGb,
+    this.gpuDisplayName,
   });
 
   String proxyUrl() {
@@ -105,12 +117,18 @@ class Pod {
   factory Pod.fromJson(Map<String, dynamic> json) {
     return Pod(
       id: json['id'] as String,
+      name: json['name'] as String?,
       imageName: json['imageName'] as String?,
       machineId: json['machineId'] as String?,
       desiredStatus: json['desiredStatus'] as String? ?? 'UNKNOWN',
       runtime: json['runtime'] == null
           ? null
           : PodRuntime.fromJson(json['runtime'] as Map<String, dynamic>),
+      costPerHr: (json['costPerHr'] as num?)?.toDouble(),
+      gpuCount: (json['gpuCount'] as num?)?.toInt(),
+      vcpuCount: (json['vcpuCount'] as num?)?.toInt(),
+      memoryInGb: (json['memoryInGb'] as num?)?.toInt(),
+      gpuDisplayName: (json['machine'] as Map<String, dynamic>?)?['gpuDisplayName'] as String?,
     );
   }
 }

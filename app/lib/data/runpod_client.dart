@@ -35,6 +35,7 @@ abstract class RunPodClient {
   /// ~/.ssh/authorized_keys on container start.
   Future<Pod?> deployPod(String apiKey, DeployConfig config, {Map<String, String>? env});
   Future<Pod> getPodStatus(String apiKey, String podId);
+  Future<List<Pod>> listPods(String apiKey);
   Future<void> stopPod(String apiKey, String podId);
   Future<void> resumePod(String apiKey, String podId, int gpuCount);
   Future<void> terminatePod(String apiKey, String podId);
@@ -194,7 +195,13 @@ class HttpRunPodClient implements RunPodClient {
       query PodStatus($podId: String!) {
         pod(input: { podId: $podId }) {
           id
+          name
           desiredStatus
+          costPerHr
+          gpuCount
+          vcpuCount
+          memoryInGb
+          machine { gpuDisplayName }
           runtime {
             uptimeInSeconds
             ports { ip publicPort privatePort type }
@@ -207,6 +214,34 @@ class HttpRunPodClient implements RunPodClient {
     final pod = data['pod'] as Map<String, dynamic>?;
     if (pod == null) throw RunPodApiException('Pod not found');
     return Pod.fromJson(pod);
+  }
+
+  @override
+  Future<List<Pod>> listPods(String apiKey) async {
+    const query = '''
+      query ListPods {
+        myself {
+          pods {
+            id
+            name
+            desiredStatus
+            costPerHr
+            gpuCount
+            vcpuCount
+            memoryInGb
+            machine { gpuDisplayName }
+            runtime {
+              uptimeInSeconds
+              ports { ip publicPort privatePort type }
+              gpus { id gpuUtilPercent memoryUtilPercent }
+            }
+          }
+        }
+      }
+    ''';
+    final data = await _graphql(apiKey, query, {});
+    final list = data['myself']?['pods'] as List<dynamic>? ?? [];
+    return list.map((e) => Pod.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   @override
