@@ -77,6 +77,7 @@ class AppState extends ChangeNotifier {
     try {
       gpuTypes = await client.listGpuTypes(apiKey!);
       templates = await client.listTemplates(apiKey!);
+      await _preloadGpuPricing();
     } catch (e) {
       browseError = e.toString();
     } finally {
@@ -87,20 +88,47 @@ class AppState extends ChangeNotifier {
 
   final Map<String, GpuPricing> _pricingCache = {};
 
-  Future<GpuPricing> getGpuPricing(GpuType gpu) async {
-    final cached = _pricingCache[gpu.id];
+  String _priceKey(String gpuId, bool secureCloud) => '${gpuId}_${secureCloud ? 'secure' : 'community'}';
+
+  /// Synchronous lookup for already-loaded pricing, used by list widgets so
+  /// sorting/filtering doesn't need a FutureBuilder per tile. Populated by
+  /// [_preloadGpuPricing] during [loadBrowseData].
+  GpuPricing? cachedPricing(String gpuId, bool secureCloud) => _pricingCache[_priceKey(gpuId, secureCloud)];
+
+  Future<GpuPricing> getGpuPricing(GpuType gpu, {required bool secureCloud}) async {
+    final key = _priceKey(gpu.id, secureCloud);
+    final cached = _pricingCache[key];
     if (cached != null) return cached;
-    final pricing = await client.getGpuPricing(
-      apiKey!,
-      gpuId: gpu.id,
-      gpuCount: config.gpuCount,
-      secureCloud: config.cloudType != CloudType.community,
-    );
-    _pricingCache[gpu.id] = pricing;
+    GpuPricing pricing;
+    try {
+      pricing = await client.getGpuPricing(
+        apiKey!,
+        gpuId: gpu.id,
+        gpuCount: config.gpuCount,
+        secureCloud: secureCloud,
+      );
+    } catch (_) {
+      pricing = GpuPricing.unavailable;
+    }
+    _pricingCache[key] = pricing;
     return pricing;
   }
 
-  Future<void> selectGpu(String gpuId) => _updateConfig((c) => c.copyWith(selectedGpuTypeId: gpuId));
+  Future<void> _preloadGpuPricing() async {
+    final futures = <Future<GpuPricing>>[];
+    for (final gpu in gpuTypes) {
+      if (gpu.secureCloud) futures.add(getGpuPricing(gpu, secureCloud: true));
+      if (gpu.communityCloud) futures.add(getGpuPricing(gpu, secureCloud: false));
+    }
+    await Future.wait(futures);
+  }
+
+  Future<void> selectGpu(String gpuId, {required bool secureCloud}) => _updateConfig(
+        (c) => c.copyWith(
+          selectedGpuTypeId: gpuId,
+          cloudType: secureCloud ? CloudType.secure : CloudType.community,
+        ),
+      );
 
   Future<void> selectTemplate(String templateId) =>
       _updateConfig((c) => c.copyWith(selectedTemplateId: templateId));

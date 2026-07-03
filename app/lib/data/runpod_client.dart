@@ -42,7 +42,6 @@ abstract class RunPodClient {
 
 class HttpRunPodClient implements RunPodClient {
   static const _graphqlBase = 'https://api.runpod.io/graphql';
-  static const _restBase = 'https://rest.runpod.io/v1';
 
   final http.Client _http;
 
@@ -133,16 +132,28 @@ class HttpRunPodClient implements RunPodClient {
 
   @override
   Future<List<PodTemplate>> listTemplates(String apiKey) async {
-    final response = await _http.get(
-      Uri.parse('$_restBase/templates'),
-      headers: {'Authorization': 'Bearer $apiKey'},
-    );
-    if (response.statusCode != 200) {
-      throw RunPodApiException('Failed to load templates: HTTP ${response.statusCode}');
-    }
-    final decoded = jsonDecode(response.body);
-    final list = decoded is List ? decoded : (decoded['templates'] as List<dynamic>? ?? []);
-    return list.map((e) => PodTemplate.fromJson(e as Map<String, dynamic>)).toList();
+    // The REST /v1/templates endpoint only returns templates owned by the
+    // account. The GraphQL myself.podTemplates field additionally includes
+    // RunPod's public/official templates, so it's used here instead.
+    const query = '''
+      query Templates {
+        myself {
+          podTemplates {
+            id
+            name
+            imageName
+            isPublic
+            isServerless
+          }
+        }
+      }
+    ''';
+    final data = await _graphql(apiKey, query, {});
+    final list = data['myself']?['podTemplates'] as List<dynamic>? ?? [];
+    return list
+        .map((e) => PodTemplate.fromJson(e as Map<String, dynamic>))
+        .where((t) => !t.isServerless)
+        .toList();
   }
 
   @override

@@ -44,6 +44,13 @@ class FakeRunPodClient implements RunPodClient {
         secureCloud: true,
         communityCloud: true,
       ),
+      GpuType(
+        id: 'NVIDIA RTX 3070',
+        displayName: 'RTX 3070',
+        memoryInGb: 8,
+        secureCloud: false,
+        communityCloud: true,
+      ),
     ];
   }
 
@@ -54,19 +61,53 @@ class FakeRunPodClient implements RunPodClient {
     required int gpuCount,
     required bool secureCloud,
   }) async {
-    return const GpuPricing(
-      stockStatus: StockStatus.high,
-      minimumBidPrice: 0.2,
-      uninterruptablePrice: 0.4,
-      availableGpuCounts: 4,
-    );
+    switch (gpuId) {
+      case 'NVIDIA H100 80GB HBM3':
+        return const GpuPricing(
+          stockStatus: StockStatus.low,
+          minimumBidPrice: 1.5,
+          uninterruptablePrice: 2.9,
+          availableGpuCounts: 1,
+        );
+      case 'NVIDIA RTX 4090':
+        return GpuPricing(
+          stockStatus: secureCloud ? StockStatus.high : StockStatus.none,
+          minimumBidPrice: secureCloud ? 0.5 : 0.35,
+          uninterruptablePrice: secureCloud ? 0.7 : 0.5,
+          availableGpuCounts: secureCloud ? 4 : 0,
+        );
+      case 'NVIDIA RTX 3070':
+        return const GpuPricing(
+          stockStatus: StockStatus.high,
+          minimumBidPrice: 0.13,
+          uninterruptablePrice: 0.2,
+          availableGpuCounts: 8,
+        );
+      default:
+        return GpuPricing.unavailable;
+    }
   }
 
   @override
   Future<List<PodTemplate>> listTemplates(String apiKey) async {
     return const [
-      PodTemplate(id: 'tmpl-pytorch', name: 'PyTorch 2.4', imageName: 'runpod/pytorch:2.4'),
-      PodTemplate(id: 'tmpl-tensorflow', name: 'TensorFlow 2.16', imageName: 'runpod/tensorflow:2.16'),
+      PodTemplate(
+        id: 'tmpl-pytorch',
+        name: 'PyTorch 2.4',
+        imageName: 'runpod/pytorch:2.4',
+        isPublic: true,
+      ),
+      PodTemplate(
+        id: 'tmpl-tensorflow',
+        name: 'TensorFlow 2.16',
+        imageName: 'runpod/tensorflow:2.16',
+        isPublic: true,
+      ),
+      PodTemplate(
+        id: 'tmpl-my-custom',
+        name: 'My Custom Template',
+        imageName: 'myregistry/custom:latest',
+      ),
     ];
   }
 

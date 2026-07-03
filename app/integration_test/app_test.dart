@@ -50,10 +50,10 @@ void main() {
     await tester.tap(find.byKey(const Key('validateApiKeyButton')));
     await tester.pumpAndSettle();
 
-    // 2. Browse screen: select a GPU and a template.
+    // 2. Browse screen: select a GPU (Secure tab, shown by default) and a template.
     expect(find.text('Browse'), findsOneWidget);
-    expect(find.byKey(const Key('gpuTile_NVIDIA H100 80GB HBM3')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('gpuTile_NVIDIA H100 80GB HBM3')));
+    expect(find.byKey(const Key('gpuTile_secure_NVIDIA H100 80GB HBM3')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('gpuTile_secure_NVIDIA H100 80GB HBM3')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('templateTab')));
@@ -81,6 +81,8 @@ void main() {
     expect(find.text('Status: RUNNING'), findsOneWidget);
     expect(find.byKey(const Key('openInBrowserButton')), findsOneWidget);
     expect(client.deployCallCount, 1);
+    expect(client.lastDeployEnv, isNotNull);
+    expect(client.lastDeployEnv!['PUBLIC_KEY'], startsWith('ssh-ed25519 '));
 
     await tester.tap(find.byKey(const Key('stopPodButton')));
     await tester.pumpAndSettle();
@@ -102,7 +104,9 @@ void main() {
     await tester.tap(find.byKey(const Key('validateApiKeyButton')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('gpuTile_NVIDIA RTX 4090')));
+    await tester.tap(find.byKey(const Key('communityGpuTab')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('gpuTile_community_NVIDIA RTX 4090')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('templateTab')));
     await tester.pumpAndSettle();
